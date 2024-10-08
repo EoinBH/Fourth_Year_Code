@@ -1,0 +1,1 @@
+This folder contains the HTML and javascript code I wrote for an assignment in the module, Internet Applications.

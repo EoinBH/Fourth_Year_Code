@@ -1,0 +1,1 @@
+This folder contains C++ and python code I wrote for my final assignment in the module, Computational Linguistics. Furthermore, there is a subdirectory 'Computational Linguistics - Final Report' containing a pdf file of my final report and other elements related to the assignment.
