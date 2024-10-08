@@ -1,0 +1,9 @@
+call you his mouse ; 1685 1 1 
+Not a mouse stirring . 1685 1 1 
+you his mouse ; _END_ 1685 1 1 
+a mouse stirring . _END_ 1685 1 1 
+_START_ Not a mouse stirring 1685 1 1 
+_START_ a mouse . _END_ 1685 1 1 
+_START_ The mouse - trap 1685 1 1 
+_START_ call you his mouse 1685 1 1 
+mouse - trap . _END_ 1685 1 1 
