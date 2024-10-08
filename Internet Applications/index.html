@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" href="/node_modules/leaflet/dist/leaflet.css" />
+<script src="/node_modules/leaflet/dist/leaflet.js"></script>
+<style>
+  #map {
+    height: 180px;
+    width: 360px;
+  }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+</head>
+<div id="app">
+  <h1>Welcome to the Weather Checker App</h1>
+  <br>
+  <span>
+    <label for="city-name">Select city:</label><br>
+    <input v-model="city" id="city-name" required>
+    <br>
+    <label for="country-name">Select country:</label><br>
+    <input v-model="country" id="country-name" required> 
+    <br>
+    <button v-on:click="GetIP">Autofill with current location (uses IP)</button>
+    <br>
+    <small v-if="city == '' || country == ''">
+      Data for both city and country must be entered before you may submit.
+    </small>
+    <button v-if="city !== '' && country !== ''" v-on:click="GetLocationData">Submit</button>
+  </span>
+  <span v-if="city !== '' || country !== ''">
+    <hr>
+    <h4>Location Entered</h4>
+    <ul>
+    <h5 v-if="city !== ''">City: {{city}}</h5>
+    <h5 v-if="country !== ''">Country: {{country}}</h5>
+    </ul>
+    <div id="map"></div>
+  </span>
+  <br>
+  <span v-if="minTemp !== -999 || maxTemp !== 999">
+    <hr>
+    <h4>Minimum & maximum temperatures to come over the next 4 days</h4>
+    <ul>
+    <h5 v-if="minTemp !== -999">Minimum temperature: {{minTemp}} Celsius</h5>
+    <h5 v-if="country !== 999">Maximum temperature: {{maxTemp}} Celsius</h5>
+    <h5 v-if="weatherType !== ''">Make sure to pack for {{weatherType}} weather!</h5>
+    </ul>
+  </span>
+  <br>
+  <span v-if="rain !== -1">
+    <hr>
+    <h4>Rain?</h4>
+    <ul>
+    <h5 v-if="rain == 1">There may be rain to come, so make sure to pack an umbrella!</h5>
+    <h5 v-else>No rain forecast, so no need to pack an umbrella!</h5>
+    </ul>
+  </span>
+  <br>
+  <span v-if="polluted !== -1">
+    <hr>
+    <h4>Mask?</h4>
+    <ul>
+    <h5>The max PM<sub>2.5</sub> concentration over the next 4 days is {{maxPollution}}μg/m<sup>3</sup></h5>
+    <h5 v-if="polluted == 1">You are advised to wear a mask.</h5>
+    <h5 v-else>No need to wear a mask!</h5>
+    </ul>
+  </span>
+  <br>
+  <span v-if="totalRainfall[0] !== -1">
+    <hr>
+    <h4>Forecast summary for next 4 days</h4>
+    <br>
+    <h4>Today: </h4>
+    <ul>
+    <h5>Average temperature : {{avgTemp[0]}} Celsius</h5>
+    <br>
+    <h5>Average wind speed : {{avgWindspeed[0]}}m/s</h5>
+    <br>
+    <h5 v-if="totalRainfall[0] == 0">Rainfall level : None</h5>
+    <h5 v-else>Rainfall level : {{totalRainfall[0]}}mm</h5>
+    </ul>
+    <br>
+    <h4>Tomorrow: </h4>
+    <ul>
+    <h5>Average temperature : {{avgTemp[1]}} Celsius</h5>
+    <br>
+    <h5>Average wind speed : {{avgWindspeed[1]}}m/s</h5>
+    <br>
+    <h5 v-if="totalRainfall[1] == 0">Rainfall level : None</h5>
+    <h5 v-else>Rainfall level : {{totalRainfall[1]}}mm</h5>
+    </ul>
+    <br>
+    <h4>Day after: </h4>
+    <ul>
+    <h5>Average temperature : {{avgTemp[2]}} Celsius</h5>
+    <br>
+    <h5>Average wind speed : {{avgWindspeed[2]}}m/s</h5>
+    <br>
+    <h5 v-if="totalRainfall[2] == 0">Rainfall level : None</h5>
+    <h5 v-else>Rainfall level : {{totalRainfall[2]}}mm</h5>
+    </ul>
+    <br>
+    <h4>Next day: </h4>
+    <ul>
+    <h5>Average temperature : {{avgTemp[3]}} Celsius</h5>
+    <br>
+    <h5>Average wind speed : {{avgWindspeed[3]}}m/s</h5>
+    <br>
+    <h5 v-if="totalRainfall[3] == 0">Rainfall level : None</h5>
+    <h5 v-else>Rainfall level : {{totalRainfall[3]}}mm</h5>
+    </ul>
+    <br>
+  </span>
+</div>
+
+<script type="module">
+
+  let minTemp = 0.0;
+  let maxTemp = 0.0;
+  let rain = 0;
+  let totalRainfall = [0, 0, 0, 0];
+  let rainfall = 0;
+  let totalWindspeed = [0, 0, 0, 0];
+  let windspeed = 0;
+  let totalTemp = [0, 0, 0, 0];
+  let temp = 0;
+  let maxPollution = 0;
+  let mymap;
+
+  var app = new Vue({
+  el:'#app',
+  data:{
+    city: '',
+    country: '',
+    lat: '',
+    long:'',
+    minTemp: -999,
+    maxTemp: 999,
+    weatherType: '',
+    rain: -1, //0: no rain, 1: rain
+    totalRainfall: [-1, -1, -1, -1],
+    avgWindspeed: [-1, -1, -1, -1],
+    avgTemp: [-1, -1, -1, -1],
+    avgPollution: [-1,-1, -1, -1],
+    polluted: -1, //0: no mask, 1: mask
+    maxPollution: -1
+  },
+  methods:{
+    GetLocationData : getLocData,
+    GetIP : getIP
+  }
+  })
+
+  function getLocData () {
+    let prom = fetch(`weather/${this.city}/${this.country}/weather`)
+    prom.then( response => response.json())
+      .then (response =>
+	     {
+        processWeather(response);
+        this.minTemp = Math.round(minTemp * 100) / 100;
+        this.maxTemp = Math.round(maxTemp * 100) / 100;
+        //Set weather type:
+        if (this.minTemp < 12) {
+          this.weatherType = 'Cold';
+        }
+        else if (this.maxTemp > 24) {
+          this.weatherType = 'Hot';
+        }
+        else {
+          this.weatherType = 'Mild';
+        }
+        this.rain = rain;
+        for (let i = 0; i < 4; i++) {
+          this.totalRainfall[i] = Math.round(totalRainfall[i] * 100) / 100;
+          if (totalWindspeed[i] == 0) {
+            //avoid division by zero
+            this.avgWindspeed[i] = 0;
+          }
+          else {
+            this.avgWindspeed[i] = Math.round((totalWindspeed[i] / 8) * 100) / 100;
+          }
+          if (totalTemp[i] == 0) {
+            //avoid division by zero
+            this.avgTemp[i] = 0;
+          }
+          else {
+            this.avgTemp[i] = Math.round((totalTemp[i] / 8) * 100) / 100;
+          }
+        }
+        this.lat = response.city.coord.lat.toString();
+        this.long = response.city.coord.lon.toString();
+        try {
+          mymap.off();
+          mymap.remove();
+        }
+        catch (err) {
+        }
+        mymap = L.map("map").setView([this.lat, this.long], 5);
+        const attribution = '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+        const tileURL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+        const tiles = L.tileLayer(tileURL, { attribution });
+        tiles.addTo(mymap);
+        let marker = L.marker([this.lat, this.long]).addTo(mymap);
+        let prom2 = fetch(`pollution/${this.lat}/${this.long}/pollution`)
+        prom2.then( response => response.json())
+        .then (response =>
+          {
+            processPollution(response);
+            this.maxPollution = maxPollution;
+            if (maxPollution > 10) {
+              this.polluted = 1;
+            }
+            else {
+              this.polluted = 0;
+            }
+          })
+	     })
+  }
+
+  function processWeather(data) {
+    rain = 0;
+    totalRainfall = [0, 0, 0, 0];
+    rainfall = 0;
+    totalWindspeed = [0, 0, 0, 0];
+    windspeed = 0;
+    totalTemp = [0, 0, 0, 0];
+    temp = 0;
+    let currMinTemp = 0.0;
+    let currMaxTemp = 0.0;
+    let len = 32;
+    let x = 0;
+    for (let i = 0; i < len; i++) {
+        if (i == 0) {
+            currMinTemp = data.list[i].main.temp_min;
+            currMaxTemp = data.list[i].main.temp_max;
+            let tmp = data.list[i].rain;
+              if (typeof tmp !== 'undefined') {
+                rain = 1;
+                rainfall += tmp["3h"];
+              }
+            windspeed += data.list[i].wind.speed;
+            temp += data.list[i].main.temp;
+        }
+        else {
+            if (data.list[i].main.temp_min < currMinTemp) {
+                currMinTemp = data.list[i].main.temp_min;
+            }
+            if (data.list[i].main.temp_max > currMaxTemp) {
+                currMaxTemp = data.list[i].main.temp_max;
+            }
+            let tmp = data.list[i].rain;
+              if (typeof tmp !== 'undefined') {
+                rain = 1;
+                rainfall += tmp["3h"];
+              }
+            windspeed += data.list[i].wind.speed;
+            temp += data.list[i].main.temp;
+            if ((i == 7) || (i == 15) || (i == 23) || (i == 31)) {
+              totalRainfall[x] = rainfall;
+              rainfall = 0;
+              totalWindspeed[x] = windspeed;
+              windspeed = 0;
+              totalTemp[x] = temp;
+              temp = 0;
+              x++;
+            }
+        }
+    }
+    minTemp = currMinTemp;
+    maxTemp = currMaxTemp;
+  }
+
+  function processPollution(data) {
+    let currMaxPollution = 0.0;
+    let len = data.list.length;
+    for (let i = 0; i < len; i++) {
+      if (i == 0) {
+        currMaxPollution = data.list[i].components.pm2_5;
+      }
+      else {
+        if (data.list[i].components.pm2_5 > currMaxPollution) {
+          currMaxPollution = data.list[i].components.pm2_5;
+        }
+      }
+    }
+    maxPollution = currMaxPollution;
+  }
+
+  function getIP () {
+    let prom = fetch("getIP")
+          prom.then( response => response.json())
+            .then (response =>
+            {
+              this.city = response.city;
+              this.country = response.country;
+            })
+  }
+
+</script>
+</html>
