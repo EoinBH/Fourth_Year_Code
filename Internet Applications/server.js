@@ -31,7 +31,7 @@ async function getData(req, res) {
 }
 
 async function retrieveData(arg1, arg2, type) {
-    const id = "401e126efb3167e6ea060c74abff5473";
+    const id = ""; //API key would be here
     let str = "";
     if (type == "weather") {
         str = `http://api.openweathermap.org/data/2.5/forecast?q=${arg1},${arg2}&units=metric&APPID=${id}`;
@@ -50,7 +50,7 @@ async function getIP(req, res) {
 }
 
 async function retrieveIP() {
-    const id = "97342ea00e094d3eb15caf307aa4bb49";
+    const id = ""; //API key would be here
     const str = `https://ipgeolocation.abstractapi.com/v1/?api_key=${id}`;
     const response = await fetch(str);
     data = await response.json();
