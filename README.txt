@@ -1,0 +1,1 @@
+This repository contains code I wrote in my Fourth Year studying Computer Science & French at Trinity College Dublin.
