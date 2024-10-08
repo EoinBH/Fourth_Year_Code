@@ -1,1 +1,1 @@
-This folder contains GLSL code I wrote for my final assignment in the module, Computer Graphics. There are also vertex shaders, fragment shaders, meshes and the final report itself.
+This folder contains GLSL code I wrote for my final assignment in the module, Computer Graphics. There are also vertex shaders, fragment shaders, meshes and a pdf file of the final report itself.
